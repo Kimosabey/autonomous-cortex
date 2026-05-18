@@ -1,7 +1,9 @@
 import json
 import os
 import re
+import time
 import uuid
+from collections import deque
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
@@ -25,8 +27,42 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 _cors = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
 ALLOW_ORIGINS = [o.strip() for o in _cors.split(",") if o.strip()]
+ALLOW_ORIGIN_REGEX = os.getenv(
+    "CORS_ORIGIN_REGEX",
+    r"^http://(localhost|127\.0\.0\.1|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+    r"192\.168\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|"
+    r"\[::1\])(:\d+)?$",
+)
 
 ASSET_RE = re.compile(r"\b[A-Z]{2,10}-[A-Z0-9][A-Z0-9-]*\b")
+
+# In-memory audit log (last 200 investigations). Suitable for the on-prem POC;
+# swap for Postgres when audit retention requirements arrive.
+AUDIT_LOG: deque[dict[str, Any]] = deque(maxlen=200)
+
+TOOL_REGISTRY: list[dict[str, Any]] = [
+    {
+        "name": "neural_pulse.search",
+        "url_env": "NEURAL_PULSE_BASE_URL",
+        "method": "POST",
+        "path": "/v1/search",
+        "purpose": "Hybrid lexical + vector search for manuals, SOPs, bulletins.",
+    },
+    {
+        "name": "spatial_nexus.impact",
+        "url_env": "SPATIAL_NEXUS_BASE_URL",
+        "method": "POST",
+        "path": "/v1/impact",
+        "purpose": "Neo4j topology — downstream dependencies + narrative.",
+    },
+    {
+        "name": "ollama.generate",
+        "url_env": "OLLAMA_BASE_URL",
+        "method": "POST",
+        "path": "/api/generate",
+        "purpose": "Local synthesis model for the analyst summary.",
+    },
+]
 
 app = FastAPI(
     title="Autonomous-Cortex",
@@ -37,6 +73,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOW_ORIGINS,
+    allow_origin_regex=ALLOW_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -161,6 +198,7 @@ async def _investigate_events(message: str) -> AsyncIterator[str]:
     )
 
     tool_errs = [x for x in (neural_err, spatial_err) if x]
+    ctx_parts = [
         "Tool results (verbatim JSON excerpts for analyst):",
         "NeuralPulse:",
         _truncate(search_payload) if search_payload else "(no data)",
@@ -190,6 +228,26 @@ async def _investigate_events(message: str) -> AsyncIterator[str]:
                 f"SpatialNexus nodes: {len((impact_payload or {}).get('nodes') or [])}."
             )
 
+    AUDIT_LOG.appendleft(
+        {
+            "request_id": rid,
+            "ts": time.time(),
+            "message_excerpt": message.strip()[:240],
+            "asset_id": asset_id,
+            "tools": {
+                "neural_pulse.search": {
+                    "hits": len((search_payload or {}).get("hits") or []),
+                    "error": neural_err,
+                },
+                "spatial_nexus.impact": {
+                    "nodes": len((impact_payload or {}).get("nodes") or []),
+                    "error": spatial_err,
+                },
+            },
+            "answer_excerpt": (answer or "")[:600],
+        }
+    )
+
     yield _sse({"event": "answer", "text": answer})
     yield _sse({"event": "done", "request_id": rid})
 
@@ -203,6 +261,28 @@ def health() -> dict:
         "neural_pulse": NEURAL_PULSE_BASE_URL,
         "spatial_nexus": SPATIAL_NEXUS_BASE_URL,
     }
+
+
+@app.get("/v1/tools")
+def list_tools() -> dict[str, Any]:
+    """Discovery endpoint: tools the agent may call, with target URLs from env."""
+    return {
+        "tools": [
+            {
+                **t,
+                "target_url": os.getenv(t["url_env"], "").rstrip("/") or None,
+            }
+            for t in TOOL_REGISTRY
+        ]
+    }
+
+
+@app.get("/v1/audit-log")
+def audit_log(limit: int = 50) -> dict[str, Any]:
+    """In-memory audit trail of recent investigations (last 200 max)."""
+    limit = max(1, min(int(limit or 50), 200))
+    items = list(AUDIT_LOG)[:limit]
+    return {"count": len(items), "limit": limit, "items": items}
 
 
 @app.post("/v1/investigate")
