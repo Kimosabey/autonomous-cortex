@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { BookOpen, ExternalLink, Loader2, MessageSquare, Wrench } from 'lucide-react'
+import { BookOpen, ExternalLink, Loader2, MessageSquare, Radio, Wrench } from 'lucide-react'
 import { useCallback, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { postInvestigateStream, type SseEvent } from '@/lib/api'
+import { getHealth, postInvestigateStream, type SseEvent } from '@/lib/api'
 
 const schema = z.object({
   message: z.string().min(1, 'Describe what to investigate.'),
@@ -33,34 +34,34 @@ type TimelineEntry =
 
 const INVESTIGATE_EXAMPLES: { label: string; message: string }[] = [
   {
-    label: 'Pump tripping',
+    label: 'Chiller 1 trip',
     message:
-      'Chilled-water pump P-CP-S3 trips every 20 minutes on overload. Which documents and upstream dependencies should we verify first?',
+      'CH-0001b00000 tripped on high condenser pressure at 03:40. Identify downstream zones losing cooling and which documents should the technician pull first.',
   },
   {
-    label: 'Power loss',
+    label: 'Condenser pump failure',
     message:
-      'Half of Floor 4 lost power at 02:15. Outline impact to AHUs and feeders and what to pull from maintenance records.',
+      'CONDPU-0001b40000 bearing noise detected — vibration reading at 12 mm/s. What is the downstream impact on CT-0001b70000 and CH-0001b00000, and what SOP applies?',
   },
   {
-    label: 'Sensor drift',
+    label: 'Cooling tower offline',
     message:
-      'Space temp sensor T-4-12 reads 4°F high vs adjacent zone. What calibration SOP and evidence chain should the technician follow?',
+      'CT-0001b70000 taken offline for basin cleaning. Which chillers and condenser pumps are affected and what is the safe reduced-load procedure?',
   },
   {
-    label: 'Startup after outage',
+    label: 'Energy meter anomaly',
     message:
-      'After a 30-minute campus outage, what is the safe restart order for chiller plant and critical labs?',
+      'EM-0001000000 reading 18% higher than EM-0002000000 on the same chiller loop. Could this indicate a metering fault or actual energy divergence? What should we verify?',
   },
   {
-    label: 'Short compliance',
+    label: 'Primary pump low flow',
     message:
-      'List the minimum documentation needed for an LOTO event on RTU-07 per our policy pack.',
+      'PV-0001b20000 differential pressure dropped below setpoint — possible cavitation. Which risers ZONE-RISER-A and ZONE-RISER-B are affected and what is the restart sequence?',
   },
   {
-    label: 'Cross-system',
+    label: 'Post-outage restart',
     message:
-      'If NeuralPulse finds bulletin MB-2024-07 and SpatialNexus shows feeder BUS-A downstream of TRF-12-AUX1, what should we tell the shift lead?',
+      'After a 45-minute campus power outage, what is the recommended restart order for PLANT-UNICHARM — chillers, condenser pumps, cooling towers, and primary pumps?',
   },
 ]
 
@@ -68,6 +69,13 @@ export function InvestigatePage() {
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [streaming, setStreaming] = useState(false)
   const [finalId, setFinalId] = useState<string | null>(null)
+
+  const healthQuery = useQuery({
+    queryKey: ['cortex-health'],
+    queryFn: getHealth,
+    refetchInterval: 30_000,
+    retry: 2,
+  })
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -130,13 +138,37 @@ export function InvestigatePage() {
               </h1>
             </div>
           </div>
-          <Button variant="outline" size="sm" asChild>
-            <a href="/docs" target="_blank" rel="noreferrer">
-              <BookOpen className="size-4" />
-              OpenAPI
-              <ExternalLink className="size-3 opacity-60" />
-            </a>
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {healthQuery.isPending ? (
+              <Badge variant="outline" className="gap-1">
+                <Loader2 className="size-3 animate-spin" aria-hidden />
+                <span aria-live="polite">Checking API…</span>
+              </Badge>
+            ) : healthQuery.isError ? (
+              <Badge variant="danger" title={(healthQuery.error as Error).message}>
+                API unreachable
+              </Badge>
+            ) : (
+              <>
+                <Badge variant="info" className="gap-1" title={`NeuralPulse: ${healthQuery.data.neural_pulse}`}>
+                  <Radio className="size-3" aria-hidden />
+                  NP target
+                </Badge>
+                <Badge variant="info" className="gap-1" title={`SpatialNexus: ${healthQuery.data.spatial_nexus}`}>
+                  <Radio className="size-3" aria-hidden />
+                  SN target
+                </Badge>
+                <Badge variant="outline">API OK · :{healthQuery.data.port}</Badge>
+              </>
+            )}
+            <Button variant="outline" size="sm" asChild>
+              <a href="/docs" target="_blank" rel="noreferrer">
+                <BookOpen className="size-4" />
+                OpenAPI
+                <ExternalLink className="size-3 opacity-60" />
+              </a>
+            </Button>
+          </div>
         </div>
       </header>
 
