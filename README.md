@@ -2,8 +2,8 @@
 
 Agentic RAG — ReAct + tools, optional HTTP to NeuralPulse / SpatialNexus.
 
-**GitHub:** `Kimosabey/selfaware-autonomous-cortex` — after `gh auth login`, from this folder:
+**GitHub:** [Kimosabey/autonomous-cortex](https://github.com/Kimosabey/autonomous-cortex) — clone with SSH:
 
-`gh repo create Kimosabey/selfaware-autonomous-cortex --private --source=. --remote=origin --push`
+`git clone git@github.com:Kimosabey/autonomous-cortex.git`
 
 Planned API port: **8104**.
