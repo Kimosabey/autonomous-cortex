@@ -1,6 +1,31 @@
-# Autonomous-Cortex
+<p align="center">
+  <img src="docs/img/banner.svg" alt="Autonomous-Cortex — Mission Console" width="100%" />
+</p>
 
-**Agentic investigation** — a single **POST** returns a **Server-Sent Events** stream (`text/event-stream`): **thought** lines, **tool** invocations (stub names/args), then an **answer** (optional **Ollama** `/api/generate` when `OLLAMA_BASE_URL` is set). The **web** UI shows a **main brief** and a **sidebar timeline** (thoughts + tools only; final answer highlighted in the main column).
+# Autonomous-Cortex · Mission Console
+
+> **Agentic investigation** — `POST /v1/investigate` returns a **Server-Sent Events** stream (`text/event-stream`): **thought** lines, **tool** calls to **NeuralPulse** + **SpatialNexus**, then an **answer** (Ollama synthesis when `OLLAMA_BASE_URL` is set). The **web** UI shows the brief in the main column and a live **tool timeline** in the sidebar.
+
+| Spec | Value |
+|---|---|
+| **Theme** | Mission Console — amber alert + slate ops, Manrope + JetBrains Mono |
+| **Port** | `:8104` |
+| **Stack** | FastAPI · httpx · Vite · React 19 · Tailwind 4 · live SSE parser |
+
+### Quick links
+[API.md](docs/API.md) · [ARCHITECTURE.md](docs/ARCHITECTURE.md) · [PLAN.md](docs/PLAN.md) · [TESTING.md](docs/TESTING.md) · [UI.md](docs/UI.md) · [CHANGELOG.md](docs/CHANGELOG.md) · [SCREENSHOTS.md](docs/SCREENSHOTS.md) · [Suite — Ports & URLs](../docs/PORTS_AND_URLS.md)
+
+### Open these to test
+
+| What | Localhost | LAN |
+|---|---|---|
+| Swagger | http://127.0.0.1:8104/docs | http://&lt;LAN_IP&gt;:8104/docs |
+| Health | http://127.0.0.1:8104/health | http://&lt;LAN_IP&gt;:8104/health |
+| Tools | http://127.0.0.1:8104/v1/tools | http://&lt;LAN_IP&gt;:8104/v1/tools |
+| Audit log | http://127.0.0.1:8104/v1/audit-log?limit=20 | http://&lt;LAN_IP&gt;:8104/v1/audit-log?limit=20 |
+| UI | http://localhost:5173 | http://&lt;LAN_IP&gt;:5173 |
+
+
 
 | | |
 |--|--|
