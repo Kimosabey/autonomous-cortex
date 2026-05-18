@@ -1,58 +1,90 @@
 # Autonomous-Cortex
 
-Agentic RAG — investigation flow with streamed **thoughts**, **tool** steps, and final **answer** (SSE). Optional Ollama for synthesis.
-
-**GitHub:** [Kimosabey/autonomous-cortex](https://github.com/Kimosabey/autonomous-cortex)
-
-```bash
-git clone git@github.com:Kimosabey/autonomous-cortex.git
-```
-
-Uses your existing `~/.ssh/config` for GitHub.
+**Agentic investigation** — a single **POST** returns a **Server-Sent Events** stream (`text/event-stream`): **thought** lines, **tool** invocations (stub names/args), then an **answer** (optional **Ollama** `/api/generate` when `OLLAMA_BASE_URL` is set). The **web** UI shows a **main brief** and a **sidebar timeline** (thoughts + tools only; final answer highlighted in the main column).
 
 | | |
 |--|--|
-| **API port** | `8104` (override with `PORT`) |
-| **OpenAPI** | `/docs` |
+| **GitHub** | [Kimosabey/autonomous-cortex](https://github.com/Kimosabey/autonomous-cortex) |
+| **Clone** | `git clone git@github.com:Kimosabey/autonomous-cortex.git` |
+| **Default API port** | `8104` |
+| **Stack** | FastAPI · httpx · **web:** Vite · React 19 · TS · Tailwind 4 · TanStack Query · RHF · Zod · Framer Motion · Sonner · fetch streaming parser |
 | **Roadmap** | [docs/PLAN.md](docs/PLAN.md) |
-| **UI rules** | [docs/UI.md](docs/UI.md) |
+| **UI / UX** | [docs/UI.md](docs/UI.md) |
 
-## API
+---
 
-- `GET /health`
-- `POST /v1/investigate` — JSON: `message`; response `text/event-stream` with `data: {JSON}` lines (`event`: `start`, `thought`, `tool`, `answer`, `done`)
+## Repository layout
 
-### Environment
+```
+autonomous-cortex/
+├── app/main.py              # SSE /v1/investigate, optional Ollama
+├── web/
+│   ├── src/pages/InvestigatePage.tsx
+│   ├── src/lib/api.ts       # postInvestigateStream()
+│   └── README.md
+├── docs/
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── .env.example
+└── README.md
+```
 
-| Variable | Purpose |
-|----------|---------|
+---
+
+## Features
+
+### API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/health` | Liveness |
+| `POST` | `/v1/investigate` | Body: `{ "message": string }`. Response: **SSE** stream of JSON objects in `data:` lines. `event` field values include `start`, `thought`, `tool`, `answer`, `done` |
+
+`CORTEX_MODEL` selects the Ollama model for generation when LLM is used.
+
+### Web UI
+
+- Large **investigation brief** textarea + submit.
+- Parses SSE in the browser; appends timeline entries.
+- **Tool timeline** sidebar: thoughts + tools; primary **answer** card when `answer` event arrives.
+
+---
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
 | `PORT` | Default `8104` |
-| `OLLAMA_BASE_URL` | Optional LLM |
-| `CORTEX_MODEL` | Default synthesis model id |
+| `OLLAMA_BASE_URL` | Optional Ollama base (no trailing slash) |
+| `CORTEX_MODEL` | Default model id (e.g. `llama3.2`) |
 | `CORS_ORIGINS` | Comma-separated allowed origins |
 
-See [.env.example](.env.example).
+**Future integration (not consumed by current `main.py`):** `NEURAL_PULSE_BASE_URL`, `SPATIAL_NEXUS_BASE_URL` in [.env.example](.env.example) for when tools call sibling services.
 
-### Local (API only)
+**Web:** `VITE_API_BASE` — optional.
+
+---
+
+## Run locally
+
+From the **repository root** (folder that contains `app/`), not inside `app/`.
+
+**Windows:** `.\run-dev.ps1` or `run-dev.bat`.
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
+# API
+python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8104
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8104
+
+# Web (other terminal)
+cd web && npm install && npm run dev
 ```
 
-## Web UI (`web/`)
+Proxy target: **127.0.0.1:8104**.
 
-Investigation console: main brief + sidebar tool/timeline (SSE). Dev proxy → **8104**.
-
-```bash
-cd web
-npm install
-npm run dev
-```
-
-[web/README.md](web/README.md)
+---
 
 ## Docker
 
@@ -60,4 +92,25 @@ npm run dev
 docker compose up --build
 ```
 
-- [http://localhost:8104](http://localhost:8104), [http://localhost:8104/health](http://localhost:8104/health), [http://localhost:8104/docs](http://localhost:8104/docs)
+---
+
+## `web/` scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev + HMR |
+| `npm run build` | Typecheck + bundle |
+| `npm run preview` | Preview |
+| `npm run lint` | ESLint |
+
+---
+
+## SSE client notes
+
+The UI uses **`fetch`** + **`ReadableStream`** (not `EventSource`) because the endpoint is **POST**. Chunks split on `\n\n` and lines starting with `data:`.
+
+---
+
+## License
+
+Proprietary — Graylinx / SelfAware® unless otherwise stated.

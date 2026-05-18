@@ -31,6 +31,39 @@ type TimelineEntry =
   | { kind: 'tool'; name: string; detail: unknown }
   | { kind: 'answer'; text: string }
 
+const INVESTIGATE_EXAMPLES: { label: string; message: string }[] = [
+  {
+    label: 'Pump tripping',
+    message:
+      'Chilled-water pump P-CP-S3 trips every 20 minutes on overload. Which documents and upstream dependencies should we verify first?',
+  },
+  {
+    label: 'Power loss',
+    message:
+      'Half of Floor 4 lost power at 02:15. Outline impact to AHUs and feeders and what to pull from maintenance records.',
+  },
+  {
+    label: 'Sensor drift',
+    message:
+      'Space temp sensor T-4-12 reads 4°F high vs adjacent zone. What calibration SOP and evidence chain should the technician follow?',
+  },
+  {
+    label: 'Startup after outage',
+    message:
+      'After a 30-minute campus outage, what is the safe restart order for chiller plant and critical labs?',
+  },
+  {
+    label: 'Short compliance',
+    message:
+      'List the minimum documentation needed for an LOTO event on RTU-07 per our policy pack.',
+  },
+  {
+    label: 'Cross-system',
+    message:
+      'If NeuralPulse finds bulletin MB-2024-07 and SpatialNexus shows feeder BUS-A downstream of TRF-12-AUX1, what should we tell the shift lead?',
+  },
+]
+
 export function InvestigatePage() {
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [streaming, setStreaming] = useState(false)
@@ -131,6 +164,21 @@ export function InvestigatePage() {
                 <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)} noValidate>
                   <div className="space-y-2">
                     <Label htmlFor="message">Investigation brief</Label>
+                    <p className="text-xs text-zinc-500">Try an example</p>
+                    <div className="flex flex-wrap gap-2">
+                      {INVESTIGATE_EXAMPLES.map((ex) => (
+                        <Button
+                          key={ex.label}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-auto max-w-full whitespace-normal py-1.5 text-left text-xs font-normal"
+                          onClick={() => form.setValue('message', ex.message)}
+                        >
+                          {ex.label}
+                        </Button>
+                      ))}
+                    </div>
                     <Textarea
                       id="message"
                       placeholder="What failed? What evidence should the agent gather?"
