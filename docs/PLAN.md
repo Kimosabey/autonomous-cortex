@@ -21,8 +21,8 @@
 
 ## Current status
 
-- FastAPI scaffold + `/health` live.
-- **`web/`** and agent pipeline **not started**.
+- SSE **`POST /v1/investigate`** calls **NeuralPulse** `POST /v1/search` and **SpatialNexus** `POST /v1/impact` using env base URLs; tool payloads appear in streamed events (no fake tool stubs).
+- **`web/`** — chat + SSE timeline UI.
 
 ## Dependency on other services
 
