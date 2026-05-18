@@ -112,17 +112,22 @@ export function InvestigatePage() {
   return (
     <div className="relative min-h-screen">
       <GridBackground />
-      <header className="border-b border-zinc-200/80 bg-white/80 backdrop-blur-md">
+      <header
+        className="border-b border-[var(--color-mist-edge)] bg-white/85 backdrop-blur-md"
+        role="banner"
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-violet-700 text-white shadow-sm">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-[var(--color-slate-ops)] text-[var(--color-amber)] shadow-sm">
               <Wrench className="size-5" aria-hidden />
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                SelfAware®
+              <p className="mono text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--color-amber-deep)]">
+                SelfAware® · Cortex IV
               </p>
-              <h1 className="text-lg font-semibold text-zinc-900">Autonomous Cortex</h1>
+              <h1 className="ops-display text-xl font-extrabold text-[var(--color-slate-ops)]">
+                Mission Console
+              </h1>
             </div>
           </div>
           <Button variant="outline" size="sm" asChild>
@@ -135,18 +140,22 @@ export function InvestigatePage() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-6xl gap-8 px-4 py-10 lg:grid-cols-[1fr_320px]">
+      <main
+        id="main"
+        role="main"
+        className="mx-auto grid max-w-6xl gap-8 px-4 py-10 lg:grid-cols-[1fr_360px]"
+      >
         <div className="space-y-8">
-          <SpotlightHero className="border border-zinc-200/80 bg-white/90 p-6 shadow-sm md:p-8">
-            <div className="space-y-2">
-              <Badge variant="info">Agentic · SSE</Badge>
-              <h2 className="text-2xl font-semibold tracking-tight text-zinc-900 md:text-3xl">
+          <SpotlightHero className="p-6 md:p-9">
+            <div className="space-y-3 pr-24">
+              <Badge variant="info">Agentic · live SSE · ReAct</Badge>
+              <h2 className="ops-display text-3xl font-extrabold tracking-tight text-[var(--color-slate-ops)] md:text-4xl">
                 Investigation console
               </h2>
-              <p className="max-w-2xl text-sm leading-relaxed text-zinc-600">
-                Streams thoughts, simulated tool calls, and a final answer. Output is
-                indicative only; correlate with ground-truth systems before operational
-                decisions.
+              <p className="max-w-2xl text-sm leading-relaxed text-[var(--color-slate-ops-soft)]">
+                Streams analyst thoughts, real tool calls to NeuralPulse + SpatialNexus, and
+                a final synthesized answer. Read-only against field systems. Correlate with
+                ground-truth before operational decisions.
               </p>
             </div>
           </SpotlightHero>

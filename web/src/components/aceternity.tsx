@@ -1,31 +1,43 @@
 import * as React from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 
 import { cn } from '@/lib/utils'
 
-/** Aceternity-style subtle grid + fade (light theme). */
+/* === Mission Console — signature visuals === */
+
 export function GridBackground({ className }: { className?: string }) {
   return (
     <div
-      className={cn(
-        'pointer-events-none absolute inset-0 -z-10 overflow-hidden',
-        className,
-      )}
+      aria-hidden
+      className={cn('pointer-events-none absolute inset-0 -z-10 overflow-hidden', className)}
     >
+      {/* Radar concentric rings */}
+      <svg
+        className="absolute -right-32 -top-32 size-[40rem] opacity-[0.08]"
+        viewBox="0 0 200 200"
+      >
+        <circle cx="100" cy="100" r="92" stroke="#0f172a" strokeWidth="0.6" fill="none" />
+        <circle cx="100" cy="100" r="68" stroke="#0f172a" strokeWidth="0.5" fill="none" />
+        <circle cx="100" cy="100" r="42" stroke="#0f172a" strokeWidth="0.5" fill="none" />
+        <line x1="0" y1="100" x2="200" y2="100" stroke="#0f172a" strokeWidth="0.4" />
+        <line x1="100" y1="0" x2="100" y2="200" stroke="#0f172a" strokeWidth="0.4" />
+        <g className="radar-sweep" style={{ transformOrigin: '100px 100px' }}>
+          <path d="M100 100 L100 8 A92 92 0 0 1 174 60 Z" fill="#d97706" opacity="0.18" />
+        </g>
+      </svg>
       <div
-        className="absolute inset-0 opacity-[0.35]"
+        className="absolute inset-0 opacity-[0.4]"
         style={{
-          backgroundImage: `linear-gradient(to right, rgb(228 228 231 / 0.7) 1px, transparent 1px),
-            linear-gradient(to bottom, rgb(228 228 231 / 0.7) 1px, transparent 1px)`,
-          backgroundSize: '48px 48px',
+          backgroundImage:
+            "linear-gradient(rgba(15,23,42,0.04) 1px, transparent 1px)," +
+            "linear-gradient(90deg, rgba(15,23,42,0.04) 1px, transparent 1px)",
+          backgroundSize: '40px 40px',
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-zinc-50 via-zinc-50/90 to-zinc-100/80" />
     </div>
   )
 }
 
-/** Soft moving gradient border (inspired by Aceternity moving-border). */
 export function MovingBorder({
   children,
   className,
@@ -34,22 +46,19 @@ export function MovingBorder({
   className?: string
 }) {
   return (
-    <div className={cn('relative overflow-hidden rounded-xl p-px', className)}>
-      <motion.div
-        className="absolute -inset-[120%] z-0 opacity-70"
+    <div className={cn('relative overflow-hidden rounded-2xl ops-card', className)}>
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-1"
         style={{
-          background:
-            'conic-gradient(from 0deg, transparent, rgb(37 99 235 / 0.55), rgb(99 102 241 / 0.5), transparent 120deg)',
+          background: 'repeating-linear-gradient(90deg, var(--color-amber) 0 12px, transparent 12px 20px)',
         }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
       />
-      <div className="relative z-10 rounded-[11px] bg-white">{children}</div>
+      <div className="relative">{children}</div>
     </div>
   )
 }
 
-/** Mouse-follow spotlight (simplified Aceternity spotlight). */
 export function SpotlightHero({
   children,
   className,
@@ -57,31 +66,31 @@ export function SpotlightHero({
   children: React.ReactNode
   className?: string
 }) {
-  const ref = React.useRef<HTMLDivElement>(null)
-  const [pos, setPos] = React.useState({ x: 50, y: 0 })
-
-  function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (!ref.current) return
-    const r = ref.current.getBoundingClientRect()
-    setPos({
-      x: ((e.clientX - r.left) / r.width) * 100,
-      y: ((e.clientY - r.top) / r.height) * 100,
-    })
-  }
-
+  const reduce = useReducedMotion()
   return (
-    <div
-      ref={ref}
-      onMouseMove={onMove}
-      className={cn('relative overflow-hidden rounded-2xl', className)}
-    >
-      <div
-        className="pointer-events-none absolute -inset-px rounded-2xl opacity-100 transition-opacity duration-500"
-        style={{
-          background: `radial-gradient(600px circle at ${pos.x}% ${pos.y}%, rgb(219 234 254 / 0.55), transparent 45%)`,
-        }}
-      />
+    <section className={cn('relative overflow-hidden rounded-3xl ops-card', className)}>
+      {/* Status LED row */}
+      <div className="absolute right-6 top-6 flex items-center gap-3" aria-hidden>
+        <span className="mono text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--color-slate-ops-soft)]">
+          OPS
+        </span>
+        <motion.span
+          className="size-2.5 rounded-full led-go"
+          animate={reduce ? undefined : { opacity: [1, 0.4, 1] }}
+          transition={{ duration: 1.6, repeat: Infinity }}
+        />
+        <motion.span
+          className="size-2.5 rounded-full led-pending"
+          animate={reduce ? undefined : { opacity: [1, 0.3, 1] }}
+          transition={{ duration: 2, repeat: Infinity, delay: 0.3 }}
+        />
+        <motion.span
+          className="size-2.5 rounded-full led-no-go"
+          animate={reduce ? undefined : { opacity: [1, 0.2, 1] }}
+          transition={{ duration: 2.4, repeat: Infinity, delay: 0.6 }}
+        />
+      </div>
       <div className="relative">{children}</div>
-    </div>
+    </section>
   )
 }
