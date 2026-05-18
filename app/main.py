@@ -34,7 +34,9 @@ ALLOW_ORIGIN_REGEX = os.getenv(
     r"\[::1\])(:\d+)?$",
 )
 
-ASSET_RE = re.compile(r"\b[A-Z]{2,10}-[A-Z0-9][A-Z0-9-]*\b")
+# Matches uppercase prefix (2-10 chars) then a hex/alphanumeric body,
+# including unicharm-style IDs like CH-0001b00000, CONDPU-0001b40000.
+ASSET_RE = re.compile(r"\b[A-Z]{2,10}-[A-Za-z0-9][A-Za-z0-9-]*\b")
 
 # In-memory audit log (last 200 investigations). Suitable for the on-prem POC;
 # swap for Postgres when audit retention requirements arrive.
@@ -89,17 +91,26 @@ def _sse(data: dict) -> str:
 
 
 def _pick_asset_id(message: str, search_payload: dict[str, Any] | None) -> str:
-    m = ASSET_RE.search(message.upper())
+    # Search original case so unicharm hex IDs (CH-0001b00000) are preserved.
+    m = ASSET_RE.search(message)
     if m:
         return m.group(0)
+    # Fallback: UPPER() scan for purely-uppercase legacy IDs
+    m2 = ASSET_RE.search(message.upper())
+    if m2:
+        return m2.group(0)
     if search_payload and search_payload.get("hits"):
         hit = search_payload["hits"][0]
         pn = hit.get("part_number")
-        if isinstance(pn, str) and ASSET_RE.search(pn.upper()):
-            return ASSET_RE.search(pn.upper()).group(0)
+        if isinstance(pn, str):
+            mp = ASSET_RE.search(pn)
+            if mp:
+                return mp.group(0)
         hid = hit.get("id")
-        if isinstance(hid, str) and ASSET_RE.search(hid.upper()):
-            return ASSET_RE.search(hid.upper()).group(0)
+        if isinstance(hid, str):
+            mh = ASSET_RE.search(hid)
+            if mh:
+                return mh.group(0)
     return "PUMP-A1"
 
 

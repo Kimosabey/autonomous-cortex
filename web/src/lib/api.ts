@@ -1,6 +1,20 @@
 const base =
   (import.meta.env.VITE_API_BASE as string | undefined)?.replace(/\/$/, '') ?? ''
 
+export type HealthResponse = {
+  status: string
+  service: string
+  port: number
+  neural_pulse: string
+  spatial_nexus: string
+}
+
+export async function getHealth(): Promise<HealthResponse> {
+  const res = await fetch(`${base}/health`)
+  if (!res.ok) throw new Error(`Health ${res.status}`)
+  return res.json() as Promise<HealthResponse>
+}
+
 export type SseEvent = Record<string, unknown>
 
 /** POST /v1/investigate — Server-Sent Events (data: JSON lines). */
